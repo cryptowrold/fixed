@@ -49,17 +49,17 @@ var errNegativeNum = errors.New("negative number")
 var errTooLarge = errors.New("significand too large")
 var errFormat = errors.New("invalid encoding")
 
-// NewS creates a new Fixed from a string, returning NaN if the string could not be parsed
-func NewS(s string) Fixed {
-	f, err := NewSErr(s)
+// NewFromString creates a new Fixed from a string, returning NaN if the string could not be parsed
+func NewFromString(s string) Fixed {
+	f, err := NewFromStringErr(s)
 	if err != nil {
 		panic(fmt.Sprintf("newSErr(%s) err: %s", s, err))
 	}
 	return f
 }
 
-// NewSErr creates a new Fixed from a string, returning NaN, and error if the string could not be parsed
-func NewSErr(s string) (Fixed, error) {
+// NewFromStringErr creates a new Fixed from a string, returning NaN, and error if the string could not be parsed
+func NewFromStringErr(s string) (Fixed, error) {
 	if strings.HasPrefix(s, "-") {
 		return NaN, errNegativeNum
 	}
@@ -68,7 +68,7 @@ func NewSErr(s string) (Fixed, error) {
 		if err != nil {
 			return NaN, err
 		}
-		return NewF(f), nil
+		return NewFromFloat(f), nil
 	}
 	if "NaN" == s {
 		return NaN, nil
@@ -101,8 +101,8 @@ func maxInt(a, b int) int {
 	return b
 }
 
-// NewF creates a Fixed from an float64, rounding at the 8th decimal place
-func NewF(f float64) Fixed {
+// NewFromFloat creates a Fixed from an float64, rounding at the 8th decimal place
+func NewFromFloat(f float64) Fixed {
 	if math.IsNaN(f) {
 		return Fixed{fp: nan}
 	}
@@ -113,9 +113,15 @@ func NewF(f float64) Fixed {
 	return Fixed{fp: uint64(f*float64(scale))}
 }
 
-// NewUI creates a Fixed for an integer, moving the decimal point n places to the left
-// For example, NewUI(123,1) becomes 12.3. If n > 8, the value is truncated
-func NewUI(i uint64, n uint) Fixed {
+// NewFromUint creates a Fixed from an uint64
+func NewFromUint(i uint64) Fixed {
+	return NewFromUintWithExponent(i, 0)
+}
+
+
+// NewFromUint creates a Fixed for an integer, moving the decimal point n places to the left
+// For example, NewFromUint(123,1) becomes 12.3. If n > 8, the value is truncated
+func NewFromUintWithExponent(i uint64, n uint) Fixed {
 	if n > nPlaces {
 		i = i / uint64(math.Pow10(int(n-nPlaces)))
 		n = nPlaces
@@ -126,10 +132,11 @@ func NewUI(i uint64, n uint) Fixed {
 	return Fixed{fp: i}
 }
 
-// NewUIFromOriginal creates a Fixed for an fixed original integer, moving the decimal point n places to the left
-// For example, NewUIFromOriginal(123) becomes 0.00000123.
-func NewUIFromOriginal(i uint64) Fixed {
-	return NewUI(i , nPlaces)
+
+// NewFromOriginal creates a Fixed for an fixed original integer, moving the decimal point n places to the left
+// For example, NewFromOriginal(123) becomes 0.00000123.
+func NewFromOriginal(i uint64) Fixed {
+	return NewFromUintWithExponent(i , nPlaces)
 }
 
 func (f Fixed) IsNaN() bool {
@@ -223,7 +230,7 @@ func (f Fixed) Div(f0 Fixed) Fixed {
 	if f.IsNaN() || f0.IsNaN() {
 		return NaN
 	}
-	return NewF(f.Float() / f0.Float())
+	return NewFromFloat(f.Float() / f0.Float())
 }
 
 // Round returns a rounded (half-up, away from zero) to n decimal places
@@ -238,7 +245,7 @@ func (f Fixed) Round(n int) Fixed {
 	f0 = f0*math.Pow10(n) + round
 	f0 = float64(int(f0)) / math.Pow10(n)
 
-	return NewF(float64(f.UInt()) + f0)
+	return NewFromFloat(float64(f.UInt()) + f0)
 }
 
 // Equal returns true if the f == f0. If either operand is NaN, false is returned. Use IsNaN() to test for NaN
@@ -422,7 +429,7 @@ func (f *Fixed) UnmarshalJSON(bytes []byte) error {
 		return nil
 	}
 
-	fixed, err := NewSErr(s)
+	fixed, err := NewFromStringErr(s)
 	*f = fixed
 	if err != nil {
 		return fmt.Errorf("error decoding string '%s': %s", s, err)

@@ -8,8 +8,8 @@ import (
 )
 
 func BenchmarkAddFixed(b *testing.B) {
-	f0 := NewF(1)
-	f1 := NewF(1)
+	f0 := NewFromFloat(1)
+	f1 := NewFromFloat(1)
 
 	for i := 0; i < b.N; i++ {
 		f1 = f1.Add(f0)
@@ -41,8 +41,8 @@ func BenchmarkAddBigFloat(b *testing.B) {
 }
 
 func BenchmarkMulFixed(b *testing.B) {
-	f0 := NewF(123456789.0)
-	f1 := NewF(1234.0)
+	f0 := NewFromFloat(123456789.0)
+	f1 := NewFromFloat(1234.0)
 
 	for i := 0; i < b.N; i++ {
 		f0.Mul(f1)
@@ -76,8 +76,8 @@ func BenchmarkMulBigFloat(b *testing.B) {
 }
 
 func BenchmarkDivFixed(b *testing.B) {
-	f0 := NewF(123456789.0)
-	f1 := NewF(1234.0)
+	f0 := NewFromFloat(123456789.0)
+	f1 := NewFromFloat(1234.0)
 
 	for i := 0; i < b.N; i++ {
 		f0.Div(f1)
@@ -111,8 +111,8 @@ func BenchmarkDivBigFloat(b *testing.B) {
 }
 
 func BenchmarkCmpFixed(b *testing.B) {
-	f0 := NewF(123456789.0)
-	f1 := NewF(1234.0)
+	f0 := NewFromFloat(123456789.0)
+	f1 := NewFromFloat(1234.0)
 
 	for i := 0; i < b.N; i++ {
 		f0.Cmp(f1)
@@ -144,14 +144,14 @@ func BenchmarkCmpBigFloat(b *testing.B) {
 }
 
 func BenchmarkStringFixed(b *testing.B) {
-	f0 := NewF(123456789.12345)
+	f0 := NewFromFloat(123456789.12345)
 
 	for i := 0; i < b.N; i++ {
 		_ = f0.String()
 	}
 }
 func BenchmarkStringNFixed(b *testing.B) {
-	f0 := NewF(123456789.12345)
+	f0 := NewFromFloat(123456789.12345)
 
 	for i := 0; i < b.N; i++ {
 		f0.StringN(5)
@@ -180,7 +180,7 @@ func BenchmarkStringBigFloat(b *testing.B) {
 }
 
 func BenchmarkWriteTo(b *testing.B) {
-	f0 := NewF(123456789.0)
+	f0 := NewFromFloat(123456789.0)
 
 	buf := new(bytes.Buffer)
 
