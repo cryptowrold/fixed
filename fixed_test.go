@@ -392,6 +392,18 @@ func TestIntFrac(t *testing.T) {
 	}
 }
 
+func TestIntOrigin(t *testing.T) {
+	f0 := NewF(1234.5678)
+	if f0.Original() != 123456780000 {
+		t.Error("should be equal", f0.Original(), 123456780000)
+	}
+
+	f0 = NewF(.5678)
+	if f0.Original() != 56780000 {
+		t.Error("should be equal", f0.Original(), 56780000)
+	}
+}
+
 func TestString(t *testing.T) {
 	f0 := NewF(1234.5678)
 	if f0.String() != "1234.5678" {

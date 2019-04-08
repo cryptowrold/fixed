@@ -386,7 +386,17 @@ func (f Fixed) MarshalBinary() (data []byte, err error) {
 
 // WriteTo write the Fixed to an io.Writer, returning the number of bytes written
 func (f Fixed) WriteTo(w io.ByteWriter) error {
-	return writeVarint(w, f.fp)
+	x := f.fp
+	i := 0
+	for x >= 0x80 {
+		err := w.WriteByte(byte(x) | 0x80)
+		if err != nil {
+			return err
+		}
+		x >>= 7
+		i++
+	}
+	return w.WriteByte(byte(x))
 }
 
 // ReadFrom reads a Fixed from an io.Reader
