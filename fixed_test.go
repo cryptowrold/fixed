@@ -398,10 +398,21 @@ func TestIntOrigin(t *testing.T) {
 		t.Error("should be equal", f0.Original(), 123456780000)
 	}
 
+	f1 := NewUIFromOriginal(f0.Original())
+	if !f1.Equal(f0) {
+		t.Error("should be equal", f1.String(), f0)
+	}
+
 	f0 = NewF(.5678)
 	if f0.Original() != 56780000 {
 		t.Error("should be equal", f0.Original(), 56780000)
 	}
+
+	f1 = NewUIFromOriginal(f0.Original())
+	if !f1.Equal(f0) {
+		t.Error("should be equal", f1.String(), f0)
+	}
+
 }
 
 func TestString(t *testing.T) {

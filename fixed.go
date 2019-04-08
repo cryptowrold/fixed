@@ -125,6 +125,12 @@ func NewUI(i uint64, n uint) Fixed {
 	return Fixed{fp: i}
 }
 
+// NewUIFromOriginal creates a Fixed for an fixed original integer, moving the decimal point n places to the left
+// For example, NewUIFromOriginal(123) becomes 0.00000123.
+func NewUIFromOriginal(i uint64) Fixed {
+	return NewUI(i , NPlaces)
+}
+
 func (f Fixed) IsNaN() bool {
 	return f.fp == nan
 }
