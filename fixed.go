@@ -20,12 +20,13 @@ type Fixed struct {
 // the following constants can be changed to configure a different number of decimal places - these are
 // the only required changes. only 18 significant digits are supported due to NaN
 
-const NPlaces = 8
-const scale = uint64(10 * 10 * 10 * 10 * 10 * 10 * 10 * 10)
-const zeros = "00000000"
-const max = float64(9999999999.99999999)
-
-const nan = uint64(1<<64 - 1)
+const (
+	nPlaces = 8
+	scale = uint64(10 * 10 * 10 * 10 * 10 * 10 * 10 * 10)
+	zeros = "00000000"
+	max = float64(9999999999.99999999)
+	nan = uint64(1<<64 - 1)
+)
 
 var (
 	NaN   = Fixed{fp: nan}
@@ -81,8 +82,8 @@ func NewSErr(s string) (Fixed, error) {
 	} else {
 		i, err = strconv.ParseUint(s[:period], 10, 64)
 		fs := s[period+1:]
-		fs = fs + zeros[:maxInt(0, NPlaces-len(fs))]
-		f, err = strconv.ParseUint(fs[0:NPlaces], 10, 64)
+		fs = fs + zeros[:maxInt(0, nPlaces-len(fs))]
+		f, err = strconv.ParseUint(fs[0:nPlaces], 10, 64)
 	}
 	if err != nil {
 		return NaN, err
@@ -115,12 +116,12 @@ func NewF(f float64) Fixed {
 // NewUI creates a Fixed for an integer, moving the decimal point n places to the left
 // For example, NewUI(123,1) becomes 12.3. If n > 8, the value is truncated
 func NewUI(i uint64, n uint) Fixed {
-	if n > NPlaces {
-		i = i / uint64(math.Pow10(int(n-NPlaces)))
-		n = NPlaces
+	if n > nPlaces {
+		i = i / uint64(math.Pow10(int(n-nPlaces)))
+		n = nPlaces
 	}
 
-	i = i * uint64(math.Pow10(int(NPlaces-n)))
+	i = i * uint64(math.Pow10(int(nPlaces-n)))
 
 	return Fixed{fp: i}
 }
@@ -128,7 +129,7 @@ func NewUI(i uint64, n uint) Fixed {
 // NewUIFromOriginal creates a Fixed for an fixed original integer, moving the decimal point n places to the left
 // For example, NewUIFromOriginal(123) becomes 0.00000123.
 func NewUIFromOriginal(i uint64) Fixed {
-	return NewUI(i , NPlaces)
+	return NewUI(i , nPlaces)
 }
 
 func (f Fixed) IsNaN() bool {
@@ -333,12 +334,12 @@ func (f Fixed) toStr() (string, int) {
 	b := make([]byte, 24)
 	b = itoa(b, fp)
 
-	return string(b), len(b) - NPlaces - 1
+	return string(b), len(b) - nPlaces - 1
 }
 
 func itoa(buf []byte, val uint64) []byte {
 	i := len(buf) - 1
-	idec := i - NPlaces
+	idec := i - nPlaces
 	for val >= 10 || i >= idec {
 		buf[i] = byte(val%10 + '0')
 		i--
