@@ -12,35 +12,56 @@ import (
 	"strings"
 )
 
-// Fixed is a fixed precision 38.24 number (supports 11.7 digits). It supports NaN.
+// Fixed is a fixed precision 38.24 number (supports 10.8 digits). It supports NaN.
 type Fixed struct {
-	fp int64
+	fp uint64
 }
 
 // the following constants can be changed to configure a different number of decimal places - these are
 // the only required changes. only 18 significant digits are supported due to NaN
 
-const nPlaces = 7
-const scale = int64(10 * 10 * 10 * 10 * 10 * 10 * 10)
-const zeros = "0000000"
-const MAX = float64(99999999999.9999999)
+const NPlaces = 8
+const scale = uint64(10 * 10 * 10 * 10 * 10 * 10 * 10 * 10)
+const zeros = "00000000"
+const max = float64(9999999999.99999999)
 
-const nan = int64(1<<63 - 1)
+const nan = uint64(1<<64 - 1)
 
-var NaN = Fixed{fp: nan}
-var ZERO = Fixed{fp: 0}
+var (
+	NaN   = Fixed{fp: nan}
+	ZERO  = Fixed{fp: 0}
+	ONE   = Fixed{fp: 1e8}
+	TWO   = Fixed{fp: 2e8}
+	THREE = Fixed{fp: 3e8}
+	FOUR  = Fixed{fp: 4e8}
+	FIVE  = Fixed{fp: 5e8}
+	SIX   = Fixed{fp: 6e8}
+	SEVEN = Fixed{fp: 7e8}
+	EIGHT = Fixed{fp: 8e8}
+	NINE  = Fixed{fp: 9e8}
+	TEN   = Fixed{fp: 10e8}
+	MAX   = Fixed{fp: 999999999999999999}
+)
 
+var errOverflow = errors.New("integer overflow")
+var errNegativeNum = errors.New("negative number")
 var errTooLarge = errors.New("significand too large")
 var errFormat = errors.New("invalid encoding")
 
 // NewS creates a new Fixed from a string, returning NaN if the string could not be parsed
 func NewS(s string) Fixed {
-	f, _ := NewSErr(s)
+	f, err := NewSErr(s)
+	if err != nil {
+		panic(fmt.Sprintf("newSErr(%s) err: %s", s, err))
+	}
 	return f
 }
 
 // NewSErr creates a new Fixed from a string, returning NaN, and error if the string could not be parsed
 func NewSErr(s string) (Fixed, error) {
+	if strings.HasPrefix(s, "-") {
+		return NaN, errNegativeNum
+	}
 	if strings.ContainsAny(s, "eE") {
 		f, err := strconv.ParseFloat(s, 64)
 		if err != nil {
@@ -52,32 +73,27 @@ func NewSErr(s string) (Fixed, error) {
 		return NaN, nil
 	}
 	period := strings.Index(s, ".")
-	var i int64
-	var f int64
-	var sign int64 = 1
+	var i uint64
+	var f uint64
+	var err error
 	if period == -1 {
-		i, _ = strconv.ParseInt(s, 10, 64)
-		if i < 0 {
-			sign = -1
-			i = i * -1
-		}
+		i, err = strconv.ParseUint(s, 10, 64)
 	} else {
-		i, _ = strconv.ParseInt(s[:period], 10, 64)
-		if i < 0 {
-			sign = -1
-			i = i * -1
-		}
+		i, err = strconv.ParseUint(s[:period], 10, 64)
 		fs := s[period+1:]
-		fs = fs + zeros[:max(0, nPlaces-len(fs))]
-		f, _ = strconv.ParseInt(fs[0:nPlaces], 10, 64)
+		fs = fs + zeros[:maxInt(0, NPlaces-len(fs))]
+		f, err = strconv.ParseUint(fs[0:NPlaces], 10, 64)
 	}
-	if float64(i) > MAX {
+	if err != nil {
+		return NaN, err
+	}
+	if float64(i) > max {
 		return NaN, errTooLarge
 	}
-	return Fixed{fp: sign * (i*scale + f)}, nil
+	return Fixed{fp: i*scale + f}, nil
 }
 
-func max(a, b int) int {
+func maxInt(a, b int) int {
 	if a > b {
 		return a
 	}
@@ -89,26 +105,22 @@ func NewF(f float64) Fixed {
 	if math.IsNaN(f) {
 		return Fixed{fp: nan}
 	}
-	if f >= MAX || f <= -MAX {
-		return NaN
-	}
-	round := .5
-	if f < 0 {
-		round = -0.5
+	if f >= max || f < 0 {
+		panic(errOverflow)
 	}
 
-	return Fixed{fp: int64(f*float64(scale) + round)}
+	return Fixed{fp: uint64(f*float64(scale))}
 }
 
-// NewI creates a Fixed for an integer, moving the decimal point n places to the left
-// For example, NewI(123,1) becomes 12.3. If n > 7, the value is truncated
-func NewI(i int64, n uint) Fixed {
-	if n > nPlaces {
-		i = i / int64(math.Pow10(int(n-nPlaces)))
-		n = nPlaces
+// NewUI creates a Fixed for an integer, moving the decimal point n places to the left
+// For example, NewUI(123,1) becomes 12.3. If n > 8, the value is truncated
+func NewUI(i uint64, n uint) Fixed {
+	if n > NPlaces {
+		i = i / uint64(math.Pow10(int(n-NPlaces)))
+		n = NPlaces
 	}
 
-	i = i * int64(math.Pow10(int(nPlaces-n)))
+	i = i * uint64(math.Pow10(int(NPlaces-n)))
 
 	return Fixed{fp: i}
 }
@@ -147,34 +159,26 @@ func (f Fixed) Add(f0 Fixed) Fixed {
 	if f.IsNaN() || f0.IsNaN() {
 		return NaN
 	}
-	return Fixed{fp: f.fp + f0.fp}
+
+	var result uint64
+	result = f.fp + f0.fp
+
+	if (result > f.fp) != (f0.fp > 0) {
+		panic(errOverflow)
+	}
+	return Fixed{fp: result}
 }
 
 // Sub subtracts f0 from f producing a Fixed. If either operand is NaN, NaN is returned
 func (f Fixed) Sub(f0 Fixed) Fixed {
+	// check overflow
+	if f.LessThan(f0) {
+		panic(errOverflow)
+	}
 	if f.IsNaN() || f0.IsNaN() {
 		return NaN
 	}
 	return Fixed{fp: f.fp - f0.fp}
-}
-
-// Abs returns the absolute value of f. If f is NaN, NaN is returned
-func (f Fixed) Abs() Fixed {
-	if f.IsNaN() {
-		return NaN
-	}
-	if f.Sign() >= 0 {
-		return f
-	}
-	f0 := Fixed{fp: f.fp * -1}
-	return f0
-}
-
-func abs(i int64) int64 {
-	if i >= 0 {
-		return i
-	}
-	return i * -1
 }
 
 // Mul multiplies f by f0 returning a Fixed. If either operand is NaN, NaN is returned
@@ -189,7 +193,7 @@ func (f Fixed) Mul(f0 Fixed) Fixed {
 	fp0_a := f0.fp / scale
 	fp0_b := f0.fp % scale
 
-	var result int64
+	var result uint64
 
 	if fp0_a != 0 {
 		result = fp_a*fp0_a*scale + fp_b*fp0_a
@@ -198,6 +202,12 @@ func (f Fixed) Mul(f0 Fixed) Fixed {
 		result = result + (fp_a * fp0_b) + ((fp_b)*fp0_b)/scale
 	}
 
+	// check overflow
+	if (fp_a >= 1 && fp_b >= 1) && (fp0_a > 1 && fp0_b > 1) {
+		if result/f.fp != fp0_a {
+			panic(errOverflow)
+		}
+	}
 	return Fixed{fp: result}
 }
 
@@ -216,15 +226,12 @@ func (f Fixed) Round(n int) Fixed {
 	}
 
 	round := .5
-	if f.fp < 0 {
-		round = -0.5
-	}
 
 	f0 := f.Frac()
 	f0 = f0*math.Pow10(n) + round
 	f0 = float64(int(f0)) / math.Pow10(n)
 
-	return NewF(float64(f.Int()) + f0)
+	return NewF(float64(f.UInt()) + f0)
 }
 
 // Equal returns true if the f == f0. If either operand is NaN, false is returned. Use IsNaN() to test for NaN
@@ -280,7 +287,7 @@ func (f Fixed) Cmp(f0 Fixed) int {
 
 // String converts a Fixed to a string, dropping trailing zeros
 func (f Fixed) String() string {
-	s, point := f.tostr()
+	s, point := f.toStr()
 	if point == -1 {
 		return s
 	}
@@ -296,7 +303,7 @@ func (f Fixed) String() string {
 // StringN converts a Fixed to a String with a specified number of decimal places, truncating as required
 func (f Fixed) StringN(decimals int) string {
 
-	s, point := f.tostr()
+	s, point := f.toStr()
 
 	if point == -1 {
 		return s
@@ -308,7 +315,7 @@ func (f Fixed) StringN(decimals int) string {
 	}
 }
 
-func (f Fixed) tostr() (string, int) {
+func (f Fixed) toStr() (string, int) {
 	fp := f.fp
 	if fp == 0 {
 		return "0." + zeros, 1
@@ -320,17 +327,12 @@ func (f Fixed) tostr() (string, int) {
 	b := make([]byte, 24)
 	b = itoa(b, fp)
 
-	return string(b), len(b) - nPlaces - 1
+	return string(b), len(b) - NPlaces - 1
 }
 
-func itoa(buf []byte, val int64) []byte {
-	neg := val < 0
-	if neg {
-		val = val * -1
-	}
-
+func itoa(buf []byte, val uint64) []byte {
 	i := len(buf) - 1
-	idec := i - nPlaces
+	idec := i - NPlaces
 	for val >= 10 || i >= idec {
 		buf[i] = byte(val%10 + '0')
 		i--
@@ -341,15 +343,11 @@ func itoa(buf []byte, val int64) []byte {
 		val /= 10
 	}
 	buf[i] = byte(val + '0')
-	if neg {
-		i--
-		buf[i] = '-'
-	}
 	return buf[i:]
 }
 
-// Int return the integer portion of the Fixed, or 0 if NaN
-func (f Fixed) Int() int64 {
+// UInt return the integer portion of the Fixed, or 0 if NaN
+func (f Fixed) UInt() uint64 {
 	if f.IsNaN() {
 		return 0
 	}
@@ -364,9 +362,14 @@ func (f Fixed) Frac() float64 {
 	return float64(f.fp%scale) / float64(scale)
 }
 
+// Original return the original digital of the Fixed,
+func (f Fixed) Original() uint64 {
+	return f.fp
+}
+
 // UnmarshalBinary implements the encoding.BinaryUnmarshaler interface
 func (f *Fixed) UnmarshalBinary(data []byte) error {
-	fp, n := binary.Varint(data)
+	fp, n := binary.Uvarint(data)
 	if n < 0 {
 		return errFormat
 	}
@@ -377,7 +380,7 @@ func (f *Fixed) UnmarshalBinary(data []byte) error {
 // MarshalBinary implements the encoding.BinaryMarshaler interface.
 func (f Fixed) MarshalBinary() (data []byte, err error) {
 	var buffer [binary.MaxVarintLen64]byte
-	n := binary.PutVarint(buffer[:], f.fp)
+	n := binary.PutUvarint(buffer[:], f.fp)
 	return buffer[:n], nil
 }
 
@@ -388,7 +391,7 @@ func (f Fixed) WriteTo(w io.ByteWriter) error {
 
 // ReadFrom reads a Fixed from an io.Reader
 func ReadFrom(r io.ByteReader) (Fixed, error) {
-	fp, err := binary.ReadVarint(r)
+	fp, err := binary.ReadUvarint(r)
 	if err != nil {
 		return NaN, err
 	}
@@ -405,7 +408,7 @@ func (f *Fixed) UnmarshalJSON(bytes []byte) error {
 	fixed, err := NewSErr(s)
 	*f = fixed
 	if err != nil {
-		return fmt.Errorf("Error decoding string '%s': %s", s, err)
+		return fmt.Errorf("error decoding string '%s': %s", s, err)
 	}
 	return nil
 }

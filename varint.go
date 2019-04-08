@@ -20,10 +20,9 @@ func writeUvarint(w io.ByteWriter, x uint64) error {
 }
 
 // WriteVarint encodes an int64 onto w
-func writeVarint(w io.ByteWriter, x int64) error {
-	ux := uint64(x) << 1
+func writeVarint(w io.ByteWriter, x uint64) error {
 	if x < 0 {
-		ux = ^ux
+		x = ^x
 	}
-	return writeUvarint(w, ux)
+	return writeUvarint(w, x)
 }

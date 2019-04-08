@@ -3,9 +3,10 @@ package fixed_test
 import (
 	"bytes"
 	"encoding/json"
-	. "github.com/robaho/fixed"
+	. "github.com/cryptowrold/fixed"
 	"math"
 	"testing"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestBasic(t *testing.T) {
@@ -16,8 +17,8 @@ func TestBasic(t *testing.T) {
 		t.Error("should be equal", f0, f1)
 	}
 
-	if f0.Int() != 123 {
-		t.Error("should be equal", f0.Int(), 123)
+	if f0.UInt() != 123 {
+		t.Error("should be equal", f0.UInt(), 123)
 	}
 
 	if f0.String() != "123.456" {
@@ -42,23 +43,19 @@ func TestBasic(t *testing.T) {
 }
 
 func TestNewI(t *testing.T) {
-	f := NewI(123, 1)
+	f := NewUI(123, 1)
 	if f.String() != "12.3" {
 		t.Error("should be equal", f, "12.3")
 	}
-	f = NewI(-123, 1)
-	if f.String() != "-12.3" {
-		t.Error("should be equal", f, "-12.3")
-	}
-	f = NewI(123, 0)
+	f = NewUI(123, 0)
 	if f.String() != "123" {
 		t.Error("should be equal", f, "123")
 	}
-	f = NewI(123456789012, 9)
-	if f.String() != "123.456789" {
-		t.Error("should be equal", f, "123.456789")
+	f = NewUI(123456789012, 9)
+	if f.String() != "123.45678901" {
+		t.Error("should be equal", f, "123.45678901")
 	}
-	f = NewI(123456789012, 9)
+	f = NewUI(123456789012, 9)
 	if f.StringN(7) != "123.4567890" {
 		t.Error("should be equal", f.StringN(7), "123.4567890")
 	}
@@ -74,10 +71,10 @@ func TestSign(t *testing.T) {
 	if f0.Sign() != 0 {
 		t.Error("should be equal", f0.Sign(), 0)
 	}
-	f0 = NewS("-100")
-	if f0.Sign() != -1 {
-		t.Error("should be equal", f0.Sign(), -1)
-	}
+	// f0 = NewS("-100")
+	// if f0.Sign() != -1 {
+	// 	t.Error("should be equal", f0.Sign(), -1)
+	// }
 	f0 = NewS("100")
 	if f0.Sign() != 1 {
 		t.Error("should be equal", f0.Sign(), 1)
@@ -86,37 +83,37 @@ func TestSign(t *testing.T) {
 }
 
 func TestMaxValue(t *testing.T) {
-	f0 := NewS("12345678901")
-	if f0.String() != "12345678901" {
-		t.Error("should be equal", f0, "12345678901")
+	f0 := NewS("1234567890")
+	if f0.String() != "1234567890" {
+		t.Error("should be equal", f0, "1234567890")
 	}
-	f0 = NewS("123456789012")
-	if f0.String() != "NaN" {
-		t.Error("should be equal", f0, "NaN")
-	}
-	f0 = NewS("-12345678901")
-	if f0.String() != "-12345678901" {
-		t.Error("should be equal", f0, "-12345678901")
-	}
-	f0 = NewS("-123456789012")
-	if f0.String() != "NaN" {
-		t.Error("should be equal", f0, "NaN")
-	}
-	f0 = NewS("99999999999")
-	if f0.String() != "99999999999" {
-		t.Error("should be equal", f0, "99999999999")
+	// f0 = NewS("123456789012")
+	// if f0.String() != "NaN" {
+	// 	t.Error("should be equal", f0, "NaN")
+	// }
+	// f0 = NewS("-12345678901")
+	// if f0.String() != "-12345678901" {
+	// 	t.Error("should be equal", f0, "-12345678901")
+	// }
+	// f0 = NewS("-123456789012")
+	// if f0.String() != "NaN" {
+	// 	t.Error("should be equal", f0, "NaN")
+	// }
+	f0 = NewS("9999999999")
+	if f0.String() != "9999999999" {
+		t.Error("should be equal", f0, "9999999999")
 	}
 	f0 = NewS("9.9999999")
 	if f0.String() != "9.9999999" {
 		t.Error("should be equal", f0, "9.9999999")
 	}
-	f0 = NewS("99999999999.9999999")
-	if f0.String() != "99999999999.9999999" {
-		t.Error("should be equal", f0, "99999999999.9999999")
+	f0 = NewS("9999999999.9999999")
+	if f0.String() != "9999999999.9999999" {
+		t.Error("should be equal", f0, "9999999999.9999999")
 	}
-	f0 = NewS("99999999999.12345678901234567890")
-	if f0.String() != "99999999999.1234567" {
-		t.Error("should be equal", f0, "99999999999.1234567")
+	f0 = NewS("9999999999.12345678901234567890")
+	if f0.String() != "9999999999.12345678" {
+		t.Error("should be equal", f0, "9999999999.12345678")
 	}
 
 }
@@ -195,24 +192,6 @@ func TestAddSub(t *testing.T) {
 
 }
 
-func TestAbs(t *testing.T) {
-	f := NewS("NaN")
-	f = f.Abs()
-	if !f.IsNaN() {
-		t.Error("should be NaN", f)
-	}
-	f = NewS("1")
-	f = f.Abs()
-	if f.String() != "1" {
-		t.Error("should be equal", f, "1")
-	}
-	f = NewS("-1")
-	f = f.Abs()
-	if f.String() != "1" {
-		t.Error("should be equal", f, "1")
-	}
-}
-
 func TestMulDiv(t *testing.T) {
 	f0 := NewS("123.456")
 	f1 := NewS("1000")
@@ -229,37 +208,37 @@ func TestMulDiv(t *testing.T) {
 		t.Error("should be equal", f2.String(), "12.3456")
 	}
 
-	f0 = NewS("123.456")
-	f1 = NewS("-1000")
-
-	f2 = f0.Mul(f1)
-	if f2.String() != "-123456" {
-		t.Error("should be equal", f2.String(), "-123456")
-	}
-
-	f0 = NewS("-123.456")
-	f1 = NewS("-1000")
-
-	f2 = f0.Mul(f1)
-	if f2.String() != "123456" {
-		t.Error("should be equal", f2.String(), "123456")
-	}
-
-	f0 = NewS("123.456")
-	f1 = NewS("-1000")
-
-	f2 = f0.Mul(f1)
-	if f2.String() != "-123456" {
-		t.Error("should be equal", f2.String(), "-123456")
-	}
-
-	f0 = NewS("-123.456")
-	f1 = NewS("-1000")
-
-	f2 = f0.Mul(f1)
-	if f2.String() != "123456" {
-		t.Error("should be equal", f2.String(), "123456")
-	}
+	// f0 = NewS("123.456")
+	// f1 = NewS("-1000")
+	//
+	// f2 = f0.Mul(f1)
+	// if f2.String() != "-123456" {
+	// 	t.Error("should be equal", f2.String(), "-123456")
+	// }
+	//
+	// f0 = NewS("-123.456")
+	// f1 = NewS("-1000")
+	//
+	// f2 = f0.Mul(f1)
+	// if f2.String() != "123456" {
+	// 	t.Error("should be equal", f2.String(), "123456")
+	// }
+	//
+	// f0 = NewS("123.456")
+	// f1 = NewS("-1000")
+	//
+	// f2 = f0.Mul(f1)
+	// if f2.String() != "-123456" {
+	// 	t.Error("should be equal", f2.String(), "-123456")
+	// }
+	//
+	// f0 = NewS("-123.456")
+	// f1 = NewS("-1000")
+	//
+	// f2 = f0.Mul(f1)
+	// if f2.String() != "123456" {
+	// 	t.Error("should be equal", f2.String(), "123456")
+	// }
 
 	f0 = NewS("10000.1")
 	f1 = NewS("10000")
@@ -278,8 +257,8 @@ func TestMulDiv(t *testing.T) {
 	f1 = NewS("3")
 
 	f2 = f0.Div(f1)
-	if f2.String() != "0.6666667" {
-		t.Error("should be equal", f2.String(), "0.6666667")
+	if f2.String() != "0.66666666" {
+		t.Error("should be equal", f2.String(), "0.66666666")
 	}
 
 	f0 = NewS("1000")
@@ -307,30 +286,30 @@ func TestMulDiv(t *testing.T) {
 	}
 
 }
-
-func TestNegatives(t *testing.T) {
-	f0 := NewS("99")
-	f1 := NewS("100")
-
-	f2 := f0.Sub(f1)
-	if f2.String() != "-1" {
-		t.Error("should be equal", f2.String(), "-1")
-	}
-	f0 = NewS("-1")
-	f1 = NewS("-1")
-
-	f2 = f0.Sub(f1)
-	if f2.String() != "0" {
-		t.Error("should be equal", f2.String(), "0")
-	}
-	f0 = NewS(".001")
-	f1 = NewS(".002")
-
-	f2 = f0.Sub(f1)
-	if f2.String() != "-0.001" {
-		t.Error("should be equal", f2.String(), "-0.001")
-	}
-}
+//
+// func TestNegatives(t *testing.T) {
+// 	f0 := NewS("99")
+// 	f1 := NewS("100")
+//
+// 	f2 := f0.Sub(f1)
+// 	if f2.String() != "-1" {
+// 		t.Error("should be equal", f2.String(), "-1")
+// 	}
+// 	f0 = NewS("-1")
+// 	f1 = NewS("-1")
+//
+// 	f2 = f0.Sub(f1)
+// 	if f2.String() != "0" {
+// 		t.Error("should be equal", f2.String(), "0")
+// 	}
+// 	f0 = NewS(".001")
+// 	f1 = NewS(".002")
+//
+// 	f2 = f0.Sub(f1)
+// 	if f2.String() != "-0.001" {
+// 		t.Error("should be equal", f2.String(), "-0.001")
+// 	}
+// }
 
 func TestOverflow(t *testing.T) {
 	f0 := NewF(1.1234567)
@@ -338,18 +317,49 @@ func TestOverflow(t *testing.T) {
 		t.Error("should be equal", f0.String(), "1.1234567")
 	}
 	f0 = NewF(1.123456789123)
-	if f0.String() != "1.1234568" {
+	if f0.String() != "1.12345678" {
 		t.Error("should be equal", f0.String(), "1.1234568")
 	}
 	f0 = NewF(1.0 / 3.0)
-	if f0.String() != "0.3333333" {
-		t.Error("should be equal", f0.String(), "0.3333333")
+	if f0.String() != "0.33333333" {
+		t.Error("should be equal", f0.String(), "0.33333333")
 	}
 	f0 = NewF(2.0 / 3.0)
-	if f0.String() != "0.6666667" {
-		t.Error("should be equal", f0.String(), "0.6666667")
+	if f0.String() != "0.66666666" {
+		t.Error("should be equal", f0.String(), "0.66666666")
 	}
 
+
+	assert.True(t, assert.Panics(t, func() {
+		_ = NewS("999999999999999999")
+	}))
+
+
+	// add overflow
+	f0 = NewS("9999999999.99")
+	for i := 0; i < 9; i++ {
+		if i == 8 {
+			assert.True(t, assert.Panics(t, func() {
+				f0 = f0.Add(NewS("11250000000"))
+			}))
+			continue
+		}
+		f0 = f0.Add(NewS("10000000000"))
+	}
+
+	// sub overflow
+	f0 = NewS("2")
+	f1 := NewS("3")
+	assert.True(t, assert.Panics(t, func() {
+		_ = f0.Sub(f1)
+	}))
+
+	// mul overflow
+	f0 = NewS("18.44674408")
+	f1 = NewS("9999999999.99999999")
+	assert.True(t, assert.Panics(t, func() {
+		_ = f0.Mul(f1).String()
+	}))
 }
 
 func TestNaN(t *testing.T) {
@@ -374,8 +384,8 @@ func TestNaN(t *testing.T) {
 
 func TestIntFrac(t *testing.T) {
 	f0 := NewF(1234.5678)
-	if f0.Int() != 1234 {
-		t.Error("should be equal", f0.Int(), 1234)
+	if f0.UInt() != 1234 {
+		t.Error("should be equal", f0.UInt(), 1234)
 	}
 	if f0.Frac() != .5678 {
 		t.Error("should be equal", f0.Frac(), .5678)
@@ -446,17 +456,17 @@ func TestRound(t *testing.T) {
 		t.Error("should be equal", f1, "1.1235")
 	}
 
-	f0 = NewS("-1.12345")
-	f1 = f0.Round(3)
+	// f0 = NewS("-1.12345")
+	// f1 = f0.Round(3)
+	//
+	// if f1.String() != "-1.123" {
+	// 	t.Error("should be equal", f1, "-1.123")
+	// }
+	// f1 = f0.Round(4)
 
-	if f1.String() != "-1.123" {
-		t.Error("should be equal", f1, "-1.123")
-	}
-	f1 = f0.Round(4)
-
-	if f1.String() != "-1.1235" {
-		t.Error("should be equal", f1, "-1.1235")
-	}
+	// if f1.String() != "-1.1235" {
+	// 	t.Error("should be equal", f1, "-1.1235")
+	// }
 }
 
 func TestEncodeDecode(t *testing.T) {
@@ -464,7 +474,7 @@ func TestEncodeDecode(t *testing.T) {
 
 	f := NewS("12345.12345")
 
-	f.WriteTo(b)
+	_ = f.WriteTo(b)
 
 	f0, err := ReadFrom(b)
 	if err != nil {
@@ -480,7 +490,7 @@ func TestEncodeDecode(t *testing.T) {
 		t.Error(err)
 	}
 	f1 := NewF(0)
-	f1.UnmarshalBinary(data)
+	_ = f1.UnmarshalBinary(data)
 
 	if !f.Equal(f1) {
 		t.Error("don't match", f, f0)
@@ -494,7 +504,7 @@ type JStruct struct {
 func TestJSON(t *testing.T) {
 	j := JStruct{}
 
-	f := NewS("1234567.1234567")
+	f := NewS("12345678.12345678")
 	j.F = f
 
 	var buf bytes.Buffer

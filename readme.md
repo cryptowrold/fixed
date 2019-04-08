@@ -1,57 +1,42 @@
 **Summary**
 
-A fixed place numeric library designed for performance.
+A fixed place numeric library with overflow check in Go designed for performance.
 
-All numbers have a fixed 7 decimal places, and the maximum permitted value is +- 99999999999,
-or just under 100 billion.
+All numbers have a fixed 8 decimal places, and the maximum permitted value is + 9999999999,
+or just under 10 billion.
 
 The library is safe for concurrent use. It has built-in support for binary and json marshalling.
 
 It is ideally suited for high performance trading financial systems. All common math operations are completed with 0 allocs.
 
-**Design Goals**
-
-Primarily developed to improve performance in [go-trader](https://github.com/robaho/go-trader).
-Using Fixed rather than decimal.Decimal improves the performance by over 20%, and a lot less GC activity as well.
-You can review these changes under the 'fixed' branch.
-
-If you review the go-trader code, you will quickly see that I use dot imports for the fixed and common packages. Since this
-is a "business/user" app and not systems code, this provides 2 major benefits: less verbose code, and I can easily change the
-implementation of Fixed without changing lots of LOC - just the import statement, and some of the wrapper methods in common.
-
-The fixed.Fixed API uses NaN for reporting errors in the common case, since often code is chained like:
-```
-   result := someFixed.Mul(NewS("123.50"))
-```
-and this would be a huge pain with error handling. Since all operations involving a NaN result in a NaN,
- any errors quickly surface anyway.
-
-
 **Performance**
 
 <pre>
-BenchmarkAddFixed-2         	2000000000	         0.85 ns/op	       0 B/op	       0 allocs/op
-BenchmarkAddDecimal-2       	 3000000	       472 ns/op	     400 B/op	      10 allocs/op
-BenchmarkAddBigInt-2        	100000000	        18.8 ns/op	       0 B/op	       0 allocs/op
-BenchmarkAddBigFloat-2      	20000000	       109 ns/op	      48 B/op	       1 allocs/op
-BenchmarkMulFixed-2         	200000000	         6.14 ns/op	       0 B/op	       0 allocs/op
-BenchmarkMulDecimal-2       	20000000	        96.0 ns/op	      80 B/op	       2 allocs/op
-BenchmarkMulBigInt-2        	100000000	        22.2 ns/op	       0 B/op	       0 allocs/op
-BenchmarkMulBigFloat-2      	30000000	        50.9 ns/op	       0 B/op	       0 allocs/op
-BenchmarkDivFixed-2         	100000000	        19.8 ns/op	       0 B/op	       0 allocs/op
-BenchmarkDivDecimal-2       	 1000000	      1206 ns/op	     928 B/op	      22 allocs/op
-BenchmarkDivBigInt-2        	20000000	        67.6 ns/op	      48 B/op	       1 allocs/op
-BenchmarkDivBigFloat-2      	10000000	       148 ns/op	      64 B/op	       2 allocs/op
-BenchmarkCmpFixed-2         	2000000000	         0.28 ns/op	       0 B/op	       0 allocs/op
-BenchmarkCmpDecimal-2       	100000000	        10.8 ns/op	       0 B/op	       0 allocs/op
-BenchmarkCmpBigInt-2        	200000000	         8.10 ns/op	       0 B/op	       0 allocs/op
-BenchmarkCmpBigFloat-2      	200000000	         8.39 ns/op	       0 B/op	       0 allocs/op
-BenchmarkStringFixed-2      	20000000	        76.1 ns/op	      32 B/op	       1 allocs/op
-BenchmarkStringNFixed-2     	20000000	        72.9 ns/op	      32 B/op	       1 allocs/op
-BenchmarkStringDecimal-2    	 5000000	       328 ns/op	     144 B/op	       5 allocs/op
-BenchmarkStringBigInt-2     	10000000	       212 ns/op	      80 B/op	       3 allocs/op
-BenchmarkStringBigFloat-2   	 3000000	       568 ns/op	     272 B/op	       8 allocs/op
-BenchmarkWriteTo-2          	20000000	        69.9 ns/op	      27 B/op	       0 allocs/op
+goos: darwin
+goarch: amd64
+pkg: github.com/cryptowrold/fixed
+BenchmarkAddFixed-4         	2000000000	         0.93 ns/op	       0 B/op	       0 allocs/op
+BenchmarkAddDecimal-4       	 5000000	       338 ns/op	     176 B/op	       8 allocs/op
+BenchmarkAddBigInt-4        	100000000	        20.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkAddBigFloat-4      	10000000	       114 ns/op	      48 B/op	       1 allocs/op
+BenchmarkMulFixed-4         	200000000	         6.66 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMulDecimal-4       	10000000	       105 ns/op	      80 B/op	       2 allocs/op
+BenchmarkMulBigInt-4        	100000000	        24.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMulBigFloat-4      	30000000	        52.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDivFixed-4         	200000000	         6.76 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDivDecimal-4       	 1000000	      1105 ns/op	     568 B/op	      21 allocs/op
+BenchmarkDivBigInt-4        	20000000	        63.8 ns/op	       8 B/op	       1 allocs/op
+BenchmarkDivBigFloat-4      	10000000	       153 ns/op	      24 B/op	       2 allocs/op
+BenchmarkCmpFixed-4         	2000000000	         0.51 ns/op	       0 B/op	       0 allocs/op
+BenchmarkCmpDecimal-4       	100000000	        11.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkCmpBigInt-4        	200000000	         7.68 ns/op	       0 B/op	       0 allocs/op
+BenchmarkCmpBigFloat-4      	200000000	         7.24 ns/op	       0 B/op	       0 allocs/op
+BenchmarkStringFixed-4      	20000000	        71.9 ns/op	      32 B/op	       1 allocs/op
+BenchmarkStringNFixed-4     	20000000	        72.6 ns/op	      32 B/op	       1 allocs/op
+BenchmarkStringDecimal-4    	 5000000	       308 ns/op	      64 B/op	       5 allocs/op
+BenchmarkStringBigInt-4     	10000000	       171 ns/op	      24 B/op	       2 allocs/op
+BenchmarkStringBigFloat-4   	 3000000	       571 ns/op	     192 B/op	       8 allocs/op
+BenchmarkWriteTo-4          	30000000	        52.4 ns/op	      18 B/op	       0 allocs/op
 </pre>
 
 The "decimal" above is the common [shopspring decimal](https://github.com/shopspring/decimal) library
