@@ -329,23 +329,20 @@ func TestOverflow(t *testing.T) {
 		t.Error("should be equal", f0.String(), "0.66666666")
 	}
 
-
 	assert.True(t, assert.Panics(t, func() {
 		_ = NewFromString("999999999999999999")
 	}))
 
-
 	// add overflow
-	f0 = NewFromString("9999999999.99")
-	for i := 0; i < 9; i++ {
-		if i == 8 {
-			assert.True(t, assert.Panics(t, func() {
-				f0 = f0.Add(NewFromString("11250000000"))
-			}))
-			continue
-		}
-		f0 = f0.Add(NewFromString("10000000000"))
-	}
+	// f0 = NewFromString("99999999999.99")
+	// 184467440737 09551615
+	// 00000000 0000 00000000
+	f0 = NewFromUint(1<<64-1).Sub(NINE)
+	f0 = f0.Add(NINE)
+	t.Log(f0)
+	assert.True(t, assert.Panics(t, func() {
+		f0 = f0.Add(TEN)
+	}))
 
 	// sub overflow
 	f0 = NewFromString("2")

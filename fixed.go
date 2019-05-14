@@ -10,6 +10,7 @@ import (
 	"math"
 	"strconv"
 	"strings"
+	"github.com/shopspring/decimal"
 )
 
 // Fixed is a fixed precision 38.24 number (supports 10.8 digits). It supports NaN.
@@ -24,7 +25,7 @@ const (
 	nPlaces = 8
 	scale = uint64(10 * 10 * 10 * 10 * 10 * 10 * 10 * 10)
 	zeros = "00000000"
-	max = float64(9999999999.99999999)
+	max = float64(99999999999.99999)
 	nan = uint64(1<<64 - 1)
 )
 
@@ -41,7 +42,7 @@ var (
 	EIGHT = Fixed{fp: 8e8}
 	NINE  = Fixed{fp: 9e8}
 	TEN   = Fixed{fp: 10e8}
-	MAX   = Fixed{fp: 999999999999999999}
+	MAX   = Fixed{fp: 9999999999999999999}
 )
 
 var errOverflow = errors.New("integer overflow")
@@ -109,8 +110,8 @@ func NewFromFloat(f float64) Fixed {
 	if f >= max || f < 0 {
 		panic(errOverflow)
 	}
-
-	return Fixed{fp: uint64(f*float64(scale))}
+	intPart := decimal.NewFromFloat(f).Mul(decimal.NewFromFloat(float64(scale))).IntPart()
+	return Fixed{fp: uint64(intPart)}
 }
 
 // NewFromUint creates a Fixed from an uint64
